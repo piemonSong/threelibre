@@ -68,34 +68,17 @@ CameraSync.prototype = {
         let pixelsPerMeter = 1;
         const worldSize = this.worldSize();
 
-        if (this.map.tb.mapboxVersion >= 2.0) {
-            // mapbox version >= 2.0
-            pixelsPerMeter = this.mercatorZfromAltitude(1, t.center.lat) * worldSize;
-            const fovAboveCenter = t._fov * (0.5 + t.centerOffset.y / t.height);
 
-            // Adjust distance to MSL by the minimum possible elevation visible on screen,
-            // this way the far plane is pushed further in the case of negative elevation.
-            const minElevationInPixels = t.elevation ? t.elevation.getMinElevationBelowMSL() * pixelsPerMeter : 0;
-            const cameraToSeaLevelDistance = ((t._camera.position[2] * worldSize) - minElevationInPixels) / Math.cos(t._pitch);
-            const topHalfSurfaceDistance = Math.sin(fovAboveCenter) * cameraToSeaLevelDistance / Math.sin(utils.clamp(Math.PI - groundAngle - fovAboveCenter, 0.01, Math.PI - 0.01));
-
-            // Calculate z distance of the farthest fragment that should be rendered.
-            furthestDistance = pitchAngle * topHalfSurfaceDistance + cameraToSeaLevelDistance;
-
-            // Add a bit extra to avoid precision problems when a fragment's distance is exactly `furthestDistance`
-            const horizonDistance = cameraToSeaLevelDistance * (1 / t._horizonShift);
-            farZ = Math.min(furthestDistance * 1.01, horizonDistance);
-        } else {
             // mapbox version < 2.0 or azure maps
             // Furthest distance optimized by @jscastro76
-            const topHalfSurfaceDistance = Math.sin(this.halfFov) * this.cameraToCenterDistance / Math.sin(Math.PI - groundAngle - this.halfFov);
+        const topHalfSurfaceDistance = Math.sin(this.halfFov) * this.cameraToCenterDistance / Math.sin(Math.PI - groundAngle - this.halfFov);
 
-            // Calculate z distance of the farthest fragment that should be rendered. 
-            furthestDistance = pitchAngle * topHalfSurfaceDistance + this.cameraToCenterDistance;
+        // Calculate z distance of the farthest fragment that should be rendered.
+        furthestDistance = pitchAngle * topHalfSurfaceDistance + this.cameraToCenterDistance;
 
-            // Add a bit extra to avoid precision problems when a fragment's distance is exactly `furthestDistance`
-            farZ = furthestDistance * 1.01;
-        }
+        // Add a bit extra to avoid precision problems when a fragment's distance is exactly `furthestDistance`
+        farZ = furthestDistance * 1.01;
+
         this.cameraTranslateZ = new THREE.Matrix4().makeTranslation(0, 0, this.cameraToCenterDistance);
 
         // someday @ansis set further near plane to fix precision for deckgl,so we should fix it to use mapbox-gl v1.3+ correctly

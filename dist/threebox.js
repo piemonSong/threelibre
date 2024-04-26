@@ -319,8 +319,6 @@ Threebox.prototype = {
 
 		this.objects = new Objects();
 
-		this.mapboxVersion = parseFloat(this.map.version); 
-
 		// Set up a THREE.js scene
 		this.renderer = new THREE.WebGLRenderer({
 			alpha: true,
@@ -842,8 +840,6 @@ Threebox.prototype = {
 			this.createTerrainLayer();
 		}
 		else {
-			if (this.mapboxVersion < 2.0) { console.warn("Terrain layer are only supported by Mapbox-gl-js > v2.0"); return };
-
 			if (this.map.getTerrain()) {
 				this.map.setTerrain(null); //
 				this.map.removeSource(this.terrainSourceName);
@@ -891,8 +887,8 @@ Threebox.prototype = {
 
 	//[jscastro] method to create an athmospheric sky layer
 	createSkyLayer: function () {
-		if (this.mapboxVersion < 2.0) { console.warn("Sky layer are only supported by Mapbox-gl-js > v2.0"); this.options.sky = false; return };
-
+		console.warn("Sky layer are not supported by MapLibre");
+		return;
 		let layer = this.map.getLayer(this.skyLayerName);
 		if (!layer) {
 			this.map.addLayer({
@@ -928,7 +924,6 @@ Threebox.prototype = {
 
 	//[jscastro] method to create a terrain layer
 	createTerrainLayer: function () {
-		if (this.mapboxVersion < 2.0) { console.warn("Terrain layer are only supported by Mapbox-gl-js > v2.0"); this.options.terrain = false; return };
 		let layer = this.map.getTerrain();
 		if (!layer) {
 			// add the DEM source as a terrain layer with exaggerated height
@@ -1337,6 +1332,7 @@ Threebox.prototype = {
 
 	updateSunSky: function (sunPos) {
 		if (this.sky) {
+			return;
 			// update the `sky-atmosphere-sun` paint property with the position of the sun based on the selected time
 			this.map.setPaintProperty(this.skyLayerName, 'sky-atmosphere-sun', sunPos);
 		}
@@ -2022,34 +2018,17 @@ CameraSync.prototype = {
         let pixelsPerMeter = 1;
         const worldSize = this.worldSize();
 
-        if (this.map.tb.mapboxVersion >= 2.0) {
-            // mapbox version >= 2.0
-            pixelsPerMeter = this.mercatorZfromAltitude(1, t.center.lat) * worldSize;
-            const fovAboveCenter = t._fov * (0.5 + t.centerOffset.y / t.height);
 
-            // Adjust distance to MSL by the minimum possible elevation visible on screen,
-            // this way the far plane is pushed further in the case of negative elevation.
-            const minElevationInPixels = t.elevation ? t.elevation.getMinElevationBelowMSL() * pixelsPerMeter : 0;
-            const cameraToSeaLevelDistance = ((t._camera.position[2] * worldSize) - minElevationInPixels) / Math.cos(t._pitch);
-            const topHalfSurfaceDistance = Math.sin(fovAboveCenter) * cameraToSeaLevelDistance / Math.sin(utils.clamp(Math.PI - groundAngle - fovAboveCenter, 0.01, Math.PI - 0.01));
-
-            // Calculate z distance of the farthest fragment that should be rendered.
-            furthestDistance = pitchAngle * topHalfSurfaceDistance + cameraToSeaLevelDistance;
-
-            // Add a bit extra to avoid precision problems when a fragment's distance is exactly `furthestDistance`
-            const horizonDistance = cameraToSeaLevelDistance * (1 / t._horizonShift);
-            farZ = Math.min(furthestDistance * 1.01, horizonDistance);
-        } else {
             // mapbox version < 2.0 or azure maps
             // Furthest distance optimized by @jscastro76
-            const topHalfSurfaceDistance = Math.sin(this.halfFov) * this.cameraToCenterDistance / Math.sin(Math.PI - groundAngle - this.halfFov);
+        const topHalfSurfaceDistance = Math.sin(this.halfFov) * this.cameraToCenterDistance / Math.sin(Math.PI - groundAngle - this.halfFov);
 
-            // Calculate z distance of the farthest fragment that should be rendered. 
-            furthestDistance = pitchAngle * topHalfSurfaceDistance + this.cameraToCenterDistance;
+        // Calculate z distance of the farthest fragment that should be rendered.
+        furthestDistance = pitchAngle * topHalfSurfaceDistance + this.cameraToCenterDistance;
 
-            // Add a bit extra to avoid precision problems when a fragment's distance is exactly `furthestDistance`
-            farZ = furthestDistance * 1.01;
-        }
+        // Add a bit extra to avoid precision problems when a fragment's distance is exactly `furthestDistance`
+        farZ = furthestDistance * 1.01;
+
         this.cameraTranslateZ = new THREE.Matrix4().makeTranslation(0, 0, this.cameraToCenterDistance);
 
         // someday @ansis set further near plane to fix precision for deckgl,so we should fix it to use mapbox-gl v1.3+ correctly
@@ -2615,27 +2594,16 @@ class BuildingShadows {
 	}
 	onAdd(map, gl) {
 		this.map = map;
-		const vertexSource = `
-			uniform mat4 u_matrix;
-			uniform float u_height_factor;
-			uniform float u_altitude;
-			uniform float u_azimuth;
-			attribute vec2 a_pos;
-			attribute vec4 a_normal_ed;
-			attribute lowp vec2 a_base;
-			attribute lowp vec2 a_height;
-			void main() {
-				float base = max(0.0, a_base.x);
-				float height = max(0.0, a_height.x);
-				float t = mod(a_normal_ed.x, 2.0);
-				vec4 pos = vec4(a_pos, t > 0.0 ? height : base, 1);
-				float len = pos.z * u_height_factor / tan(u_altitude);
-				pos.x += cos(u_azimuth) * len;
-				pos.y += sin(u_azimuth) * len;
-				pos.z = 0.0;
-				gl_Position = u_matrix * pos;
-			}
-			`;
+		// find layer source
+		const sourceName = this.map.getLayer(this.buildingsLayerId).source;
+		this.source = (this.map.style.sourceCaches || this.map.style._otherSourceCaches)[sourceName];
+		if (!this.source) {
+			console.warn(`Can't find layer ${this.buildingsLayerId}'s source.`);
+		}
+
+		// vertex shader of fill-extrusion layer is different in mapbox v1 and v2.
+		// https://github.com/mapbox/mapbox-gl-js/commit/cef95aa0241e748b396236f1269fbb8270f31565
+		const vertexSource = this._getVertexSource();
 		const fragmentSource = `
 			void main() {
 				gl_FragColor = vec4(0.0, 0.0, 0.0, 0.7);
@@ -2656,15 +2624,20 @@ class BuildingShadows {
 		this.uHeightFactor = gl.getUniformLocation(this.program, "u_height_factor");
 		this.uAltitude = gl.getUniformLocation(this.program, "u_altitude");
 		this.uAzimuth = gl.getUniformLocation(this.program, "u_azimuth");
+
+
 		this.aPos = gl.getAttribLocation(this.program, "a_pos");
 		this.aNormal = gl.getAttribLocation(this.program, "a_normal_ed");
+
+
 		this.aBase = gl.getAttribLocation(this.program, "a_base");
 		this.aHeight = gl.getAttribLocation(this.program, "a_height");
 	}
 	render(gl, matrix) {
+		if (!this.source) return;
+
 		gl.useProgram(this.program);
-		const source = this.map.style.sourceCaches['composite'];
-		const coords = source.getVisibleCoordinates().reverse();
+		const coords = this.source.getVisibleCoordinates().reverse();
 		const buildingsLayer = this.map.getLayer(this.buildingsLayerId);
 		const context = this.map.painter.context;
 		const { lng, lat } = this.map.getCenter();
@@ -2680,24 +2653,25 @@ class BuildingShadows {
 		//gl.blendEquation(gl.FUNC_ADD);
 		gl.disable(gl.DEPTH_TEST);
 		for (const coord of coords) {
-			const tile = source.getTile(coord);
+			const tile = this.source.getTile(coord);
 			const bucket = tile.getBucket(buildingsLayer);
 			if (!bucket) continue;
 			const [heightBuffer, baseBuffer] = bucket.programConfigurations.programConfigurations[this.buildingsLayerId]._buffers;
-			gl.uniformMatrix4fv(this.uMatrix, false, coord.posMatrix);
+			gl.uniformMatrix4fv(this.uMatrix, false, (coord.posMatrix || coord.projMatrix));
 			gl.uniform1f(this.uHeightFactor, Math.pow(2, coord.overscaledZ) / tile.tileSize / 8);
 			for (const segment of bucket.segments.get()) {
 				const numPrevAttrib = context.currentNumAttributes || 0;
 				const numNextAttrib = 2;
 				for (let i = numNextAttrib; i < numPrevAttrib; i++) gl.disableVertexAttribArray(i);
 				const vertexOffset = segment.vertexOffset || 0;
-				gl.enableVertexAttribArray(this.aPos);
 				gl.enableVertexAttribArray(this.aNormal);
 				gl.enableVertexAttribArray(this.aHeight);
 				gl.enableVertexAttribArray(this.aBase);
 				bucket.layoutVertexBuffer.bind();
+				gl.enableVertexAttribArray(this.aPos);
 				gl.vertexAttribPointer(this.aPos, 2, gl.SHORT, false, 12, 12 * vertexOffset);
 				gl.vertexAttribPointer(this.aNormal, 4, gl.SHORT, false, 12, 4 + 12 * vertexOffset);
+
 				heightBuffer.bind();
 				gl.vertexAttribPointer(this.aHeight, 1, gl.FLOAT, false, 4, 4 * vertexOffset);
 				baseBuffer.bind();
@@ -2708,6 +2682,31 @@ class BuildingShadows {
 			}
 		}
 	}
+
+	_getVertexSource() {
+		return `
+			uniform mat4 u_matrix;
+			uniform float u_height_factor;
+			uniform float u_altitude;
+			uniform float u_azimuth;
+			attribute vec2 a_pos;
+			attribute vec4 a_normal_ed;
+			attribute lowp vec2 a_base;
+			attribute lowp vec2 a_height;
+			void main() {
+				float base = max(0.0, a_base.x);
+				float height = max(0.0, a_height.x);
+				float t = mod(a_normal_ed.x, 2.0);
+				vec4 pos = vec4(a_pos, t > 0.0 ? height : base, 1);
+				float len = pos.z * u_height_factor / tan(u_altitude);
+				pos.x += cos(u_azimuth) * len;
+				pos.y += sin(u_azimuth) * len;
+				pos.z = 0.0;
+				gl_Position = u_matrix * pos;
+			}
+		`;
+	}
+
 }
 
 

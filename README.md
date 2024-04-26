@@ -1,11 +1,5 @@
 # `Threebox`
 
-![npm](https://img.shields.io/npm/dt/threebox-plugin?style=social)
-![npm](https://img.shields.io/npm/dw/threebox-plugin?style=flat-square)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/jscastro76/threebox?style=flat-square)](https://github.com/jscastro76/threebox/releases/)
-[![NPM version](http://img.shields.io/npm/v/threebox-plugin.svg?style=flat-square)](https://www.npmjs.org/package/threebox-plugin)
-[![NPM license](http://img.shields.io/npm/l/threebox-plugin.svg?style=flat-square)](https://www.npmjs.org/package/threebox-plugin)
-
 A **[*Three.js*](https://threejs.org/)** plugin for **[*Mapbox GL JS*](https://docs.mapbox.com/mapbox-gl-js/examples/)** and **[*Azure Maps*](https://azure.microsoft.com/en-us/services/azure-maps/)** using the [`CustomLayerInterface`](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) feature. Provides convenient methods to manage objects in lnglat coordinates, and to synchronize the map and scene cameras.
 <img alt="threebox" src="docs/gallery.jpg">
 
@@ -26,10 +20,10 @@ npm i threebox-plugin
 
 - - -
 
-## ONLY in this Threebox fork
+## Example
 
 |Models built-in & custom animations |Mouse over/out, Selected, Drag&Drop, Drag&Rotate, Wireframe 
-|---------|-----------------------
+---------|-----------------------
 |<img alt="threebox" src="https://i.postimg.cc/vTNLLLLn/Animation-Video.gif" width="100%">|<img alt="threebox" src="https://i.postimg.cc/3Jjgnvjz/Wireframes.gif" width="100%" >
 
 |Tooltips using altitude|Optimization of camera perspective and depth

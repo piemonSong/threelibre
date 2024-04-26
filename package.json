@@ -1,18 +1,15 @@
 {
-    "name": "threebox-plugin",
-    "version": "2.2.7",
-    "description": "A Three.js plugin for Mapbox GL JS, using the CustomLayerInterface feature. Provides convenient methods to manage objects in lnglat coordinates, and to synchronize the map and scene cameras.",
+    "name": "threelibre-plugin",
+    "version": "0.0.1",
+    "description": "A Three.js plugin for MapLibre GL JS, using the CustomLayerInterface feature. Provides convenient methods to manage objects in lnglat coordinates, and to synchronize the map and scene cameras.",
     "main": "main.js",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/jscastro76/threebox.git"
+        "url": "git+https://github.com/piemonSong/threelibre.git"
     },
     "author": " @jscastro76, @peterqliu, @kronick",
     "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/jscastro76/threebox/issues"
-    },
-    "homepage": "https://github.com/jscastro76/threebox#readme",
+    "homepage": "https://github.com/piemonSong/threelibre#readme",
     "scripts": {
         "build": "browserify -p tinyify exports.js > dist/threebox.min.js && ncp ./examples/css/threebox.css ./dist/threebox.css --stopOnErr",
         "dev": "watchify exports.js --verbose -o dist/threebox.js ",
@@ -37,7 +34,7 @@
     "keywords": [
         "three.js",
         "mapbox",
-        "mapbox-gl-js",
+        "maplibre",
         "azure-maps",
         "3D"
     ]

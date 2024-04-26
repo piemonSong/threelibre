@@ -14,3 +14,5 @@
 /server.js
 /ThreeboxSolution.sln
 /ThreeboxSolution/
+.idea
+pnpm-lock.yaml

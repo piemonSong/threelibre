@@ -49,8 +49,6 @@ Threebox.prototype = {
 
 		this.objects = new Objects();
 
-		this.mapboxVersion = parseFloat(this.map.version); 
-
 		// Set up a THREE.js scene
 		this.renderer = new THREE.WebGLRenderer({
 			alpha: true,
@@ -572,8 +570,6 @@ Threebox.prototype = {
 			this.createTerrainLayer();
 		}
 		else {
-			if (this.mapboxVersion < 2.0) { console.warn("Terrain layer are only supported by Mapbox-gl-js > v2.0"); return };
-
 			if (this.map.getTerrain()) {
 				this.map.setTerrain(null); //
 				this.map.removeSource(this.terrainSourceName);
@@ -621,8 +617,8 @@ Threebox.prototype = {
 
 	//[jscastro] method to create an athmospheric sky layer
 	createSkyLayer: function () {
-		if (this.mapboxVersion < 2.0) { console.warn("Sky layer are only supported by Mapbox-gl-js > v2.0"); this.options.sky = false; return };
-
+		console.warn("Sky layer are not supported by MapLibre");
+		return;
 		let layer = this.map.getLayer(this.skyLayerName);
 		if (!layer) {
 			this.map.addLayer({
@@ -658,7 +654,6 @@ Threebox.prototype = {
 
 	//[jscastro] method to create a terrain layer
 	createTerrainLayer: function () {
-		if (this.mapboxVersion < 2.0) { console.warn("Terrain layer are only supported by Mapbox-gl-js > v2.0"); this.options.terrain = false; return };
 		let layer = this.map.getTerrain();
 		if (!layer) {
 			// add the DEM source as a terrain layer with exaggerated height
@@ -1067,6 +1062,7 @@ Threebox.prototype = {
 
 	updateSunSky: function (sunPos) {
 		if (this.sky) {
+			return;
 			// update the `sky-atmosphere-sun` paint property with the position of the sun based on the selected time
 			this.map.setPaintProperty(this.skyLayerName, 'sky-atmosphere-sun', sunPos);
 		}

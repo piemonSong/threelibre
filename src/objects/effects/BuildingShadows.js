@@ -43,12 +43,10 @@ class BuildingShadows {
 		this.uAltitude = gl.getUniformLocation(this.program, "u_altitude");
 		this.uAzimuth = gl.getUniformLocation(this.program, "u_azimuth");
 
-		if (this.tb.mapboxVersion >= 2.0) {
-			this.aPosNormal = gl.getAttribLocation(this.program, "a_pos_normal_ed");
-		} else {
-			this.aPos = gl.getAttribLocation(this.program, "a_pos");
-			this.aNormal = gl.getAttribLocation(this.program, "a_normal_ed");
-		}
+
+		this.aPos = gl.getAttribLocation(this.program, "a_pos");
+		this.aNormal = gl.getAttribLocation(this.program, "a_normal_ed");
+
 
 		this.aBase = gl.getAttribLocation(this.program, "a_base");
 		this.aHeight = gl.getAttribLocation(this.program, "a_height");
@@ -88,14 +86,9 @@ class BuildingShadows {
 				gl.enableVertexAttribArray(this.aHeight);
 				gl.enableVertexAttribArray(this.aBase);
 				bucket.layoutVertexBuffer.bind();
-				if (this.tb.mapboxVersion >= 2.0) {
-					gl.enableVertexAttribArray(this.aPosNormal);
-					gl.vertexAttribPointer(this.aPosNormal, 4, gl.SHORT, false, 8, 8 * vertexOffset);
-				} else {
-					gl.enableVertexAttribArray(this.aPos);
-					gl.vertexAttribPointer(this.aPos, 2, gl.SHORT, false, 12, 12 * vertexOffset);
-					gl.vertexAttribPointer(this.aNormal, 4, gl.SHORT, false, 12, 4 + 12 * vertexOffset);
-				}
+				gl.enableVertexAttribArray(this.aPos);
+				gl.vertexAttribPointer(this.aPos, 2, gl.SHORT, false, 12, 12 * vertexOffset);
+				gl.vertexAttribPointer(this.aNormal, 4, gl.SHORT, false, 12, 4 + 12 * vertexOffset);
 
 				heightBuffer.bind();
 				gl.vertexAttribPointer(this.aHeight, 1, gl.FLOAT, false, 4, 4 * vertexOffset);
@@ -109,55 +102,29 @@ class BuildingShadows {
 	}
 
 	_getVertexSource() {
-		if (this.tb.mapboxVersion >= 2.0) {
-			return `
-				uniform mat4 u_matrix;
-				uniform float u_height_factor;
-				uniform float u_altitude;
-				uniform float u_azimuth;
-				attribute vec4 a_pos_normal_ed;
-				attribute lowp vec2 a_base;
-				attribute lowp vec2 a_height;
-				void main() {
-					float base = max(0.0, a_base.x);
-					float height = max(0.0, a_height.x);
-
-					vec3 pos_nx = floor(a_pos_normal_ed.xyz * 0.5);
-					mediump vec3 top_up_ny = a_pos_normal_ed.xyz - 2.0 * pos_nx;
-					float t = top_up_ny.x;
-					vec4 pos = vec4(pos_nx.xy, t > 0.0 ? height : base, 1);
-
-					float len = pos.z * u_height_factor / tan(u_altitude);
-					pos.x += cos(u_azimuth) * len;
-					pos.y += sin(u_azimuth) * len;
-					pos.z = 0.0;
-					gl_Position = u_matrix * pos;
-				}
-			`;
-		} else {
-			return `
-				uniform mat4 u_matrix;
-				uniform float u_height_factor;
-				uniform float u_altitude;
-				uniform float u_azimuth;
-				attribute vec2 a_pos;
-				attribute vec4 a_normal_ed;
-				attribute lowp vec2 a_base;
-				attribute lowp vec2 a_height;
-				void main() {
-					float base = max(0.0, a_base.x);
-					float height = max(0.0, a_height.x);
-					float t = mod(a_normal_ed.x, 2.0);
-					vec4 pos = vec4(a_pos, t > 0.0 ? height : base, 1);
-					float len = pos.z * u_height_factor / tan(u_altitude);
-					pos.x += cos(u_azimuth) * len;
-					pos.y += sin(u_azimuth) * len;
-					pos.z = 0.0;
-					gl_Position = u_matrix * pos;
-				}
-			`;
-		}
+		return `
+			uniform mat4 u_matrix;
+			uniform float u_height_factor;
+			uniform float u_altitude;
+			uniform float u_azimuth;
+			attribute vec2 a_pos;
+			attribute vec4 a_normal_ed;
+			attribute lowp vec2 a_base;
+			attribute lowp vec2 a_height;
+			void main() {
+				float base = max(0.0, a_base.x);
+				float height = max(0.0, a_height.x);
+				float t = mod(a_normal_ed.x, 2.0);
+				vec4 pos = vec4(a_pos, t > 0.0 ? height : base, 1);
+				float len = pos.z * u_height_factor / tan(u_altitude);
+				pos.x += cos(u_azimuth) * len;
+				pos.y += sin(u_azimuth) * len;
+				pos.z = 0.0;
+				gl_Position = u_matrix * pos;
+			}
+		`;
 	}
+
 }
 
 
